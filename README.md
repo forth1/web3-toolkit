@@ -101,8 +101,5 @@ git commit -m "release v2"
 git push origin main
 git tag v2
 git push origin v2
-二次发布：
-```bash
-git tag v2
-git push origin v2
+
 
