@@ -87,3 +87,22 @@ git commit -m "web3 toolkit v1"
 git branch -M main
 git remote add origin https://github.com/你的用户名/web3-toolkit.git
 git push -u origin main
+### 📌 发布版本（Tag）
+
+首次发布：
+```bash
+git tag v1
+git push origin v1
+## 上传到 GitHub 的步骤2（备忘）
+
+```bash
+git add .
+git commit -m "release v2"
+git push origin main
+git tag v2
+git push origin v2
+二次发布：
+```bash
+git tag v2
+git push origin v2
+
