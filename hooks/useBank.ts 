@@ -1,0 +1,134 @@
+// hooks/useBank.ts
+import { useCallback, useEffect, useState } from "react";
+import { ethers } from "ethers";
+import { getBankContract } from "../react/getBankContract";
+import { getBalance } from "../react/getBalance"; // 如果暂时没有这个文件，可以先删掉这行和下面用到的地方
+
+// 你工具库里统一用 string 表示 ETH 金额，方便在 UI 里直接展示
+export interface BankState {
+  walletBalance: string; // 钱包余额（ETH）
+  bankBalance: string;   // 合约中的余额（ETH）
+  loading: boolean;
+  error?: string;
+}
+
+export function useBank() {
+  const [state, setState] = useState<BankState>({
+    walletBalance: "0",
+    bankBalance: "0",
+    loading: false,
+  });
+
+  // 内部工具：安全更新 state
+  const safeSetState = useCallback(
+    (patch: Partial<BankState>) => {
+      setState((prev) => ({ ...prev, ...patch }));
+    },
+    []
+  );
+
+  // 刷新余额（钱包 + Bank 合约）
+  const refresh = useCallback(async () => {
+    try {
+      safeSetState({ loading: true, error: undefined });
+
+      const { contract, signer, provider } = await getBankContract();
+      const address = await signer.getAddress();
+
+      // 1. 合约里的余额
+      const bankRaw = await contract.balances(address);
+
+      // 2. 钱包余额（用你自己的 getBalance 工具，如果没有就用 provider.getBalance）
+      let walletRaw: ethers.BigNumber;
+      try {
+        walletRaw = await getBalance(provider, address);
+      } catch {
+        walletRaw = await provider.getBalance(address);
+      }
+
+      safeSetState({
+        walletBalance: ethers.utils.formatEther(walletRaw ?? 0),
+        bankBalance: ethers.utils.formatEther(bankRaw ?? 0),
+        loading: false,
+      });
+    } catch (e: any) {
+      console.error("useBank.refresh error:", e);
+      safeSetState({
+        loading: false,
+        error: e?.reason || e?.message || "刷新余额失败",
+      });
+    }
+  }, [safeSetState]);
+
+  // 存款
+  const deposit = useCallback(
+    async (amountEth: string) => {
+      if (!amountEth || Number(amountEth) <= 0) {
+        throw new Error("请输入大于 0 的金额");
+      }
+      try {
+        safeSetState({ loading: true, error: undefined });
+
+        const { contract } = await getBankContract();
+        const tx = await contract.deposit({
+          value: ethers.utils.parseEther(amountEth),
+        });
+        await tx.wait();
+
+        await refresh();
+      } catch (e: any) {
+        console.error("useBank.deposit error:", e);
+        safeSetState({
+          error: e?.reason || e?.message || "存款失败",
+        });
+        throw e;
+      } finally {
+        safeSetState({ loading: false });
+      }
+    },
+    [refresh, safeSetState]
+  );
+
+  // 取款
+  const withdraw = useCallback(
+    async (amountEth: string) => {
+      if (!amountEth || Number(amountEth) <= 0) {
+        throw new Error("请输入大于 0 的金额");
+      }
+      try {
+        safeSetState({ loading: true, error: undefined });
+
+        const { contract } = await getBankContract();
+        const tx = await contract.withdraw(
+          ethers.utils.parseEther(amountEth)
+        );
+        await tx.wait();
+
+        await refresh();
+      } catch (e: any) {
+        console.error("useBank.withdraw error:", e);
+        safeSetState({
+          error: e?.reason || e?.message || "取款失败",
+        });
+        throw e;
+      } finally {
+        safeSetState({ loading: false });
+      }
+    },
+    [refresh, safeSetState]
+  );
+
+  // 默认自动刷新一次
+  useEffect(() => {
+    refresh().catch(() => {
+      // 已在 refresh 里处理错误，这里不用再提示
+    });
+  }, [refresh]);
+
+  return {
+    ...state,
+    refresh,
+    deposit,
+    withdraw,
+  };
+}

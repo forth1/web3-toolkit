@@ -1,0 +1,24 @@
+const bank = await ethers.getContractAt("Bank", "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512")
+const [signer] = await ethers.getSigners()
+await bank.getBalance(await signer.getAddress());
+const bank = new ethers.Contract("0x5FbDB2315678afecb367f032d93F642f64180aa3", abi, signer);
+const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545/");
+const ethers = require("ethers");
+const abi = require("./artifacts/contracts/Bank.sol/Bank.json").abi;
+await bank.getBalance()
+const bank = Bank.attach("0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512")
+const Bank = await ethers.getContractFactory("Bank")
+const [deployer] = await ethers.getSigners()
+.exit
+await bank.balances(await signer.getAddress())
+await bank.deposit({ value: ethers.parseEther("1") })
+await bank.getBalance(await signer.getAddress())
+await bank.withdraw(ethers.parseEther("0.5"))
+await bank.deposit({ value: ethers.parseEther("1") })
+await bank.balances(await signer.getAddress())
+bank.interface.fragments.map(f => f.name)
+await bank.getBalance(await signer.getAddress())
+const bank = await ethers.getContractAt("Bank", "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707")
+const [signer] = await ethers.getSigners()
+0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9
+0x5FC8d32690cc91D4c39d9d3abcBD16989F875707BD16989F875707

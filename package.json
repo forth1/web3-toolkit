@@ -1,0 +1,27 @@
+{
+  "name": "web3-toolkit",
+  "version": "1.0.0",
+  "description": "🚀 Web3 开发工具库（v1）",
+  "main": "index.js",
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "node": "npx hardhat node",
+    "deploy:bank": "npx hardhat run hardhat/deploy-bank.js --network localhost",
+    "deploy:erc20": "npx hardhat run hardhat/deploy-erc20.js --network localhost"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+
+  "type": "commonjs",
+
+  "dependencies": {
+    "ethers": "^6.12.0"
+  },
+  "devDependencies": {
+    "hardhat": "^2.22.3",
+    "@nomicfoundation/hardhat-ethers": "^3.0.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.0"
+  }
+}
