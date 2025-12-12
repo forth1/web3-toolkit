@@ -7,3 +7,13 @@ node_modules/
 # logs
 logs/
 *.log
+
+# Hardhat
+cache/
+artifacts/
+
+# VSCode
+*.code-workspace
+
+# env
+.env
