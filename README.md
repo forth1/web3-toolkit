@@ -1,105 +1,161 @@
-🚀 Web3 开发工具库（v1）
+# 🚀 Web3 Toolkit v10
 
-一个为前端工程师准备的 Web3 快速开发工具包。包含 Hardhat 部署模版、智能合约交互封装、常用 ETH 工具函数，以及可复用 React Hooks。
-📦 功能简介
+一个面向 **Web3 学习者 & 前端工程师** 的实战型工具库，目标是：  
+**用一套稳定、可复用的工具，快速完成 DApp 从合约 → 部署 → 前端交互的完整闭环。**
 
-本工具库为 Web3 学习者与前端开发者提供：
-	•	✔ Hardhat 合约部署模板（可一键复用）
-	•	✔ React + Ethers 前端三件套封装
-	•	✔ 自动选择 ABI + 地址的合约连接器
-	•	✔ 常用 ETH 单位处理工具（parseEther / formatEther）
-	•	✔ 通用 React Hook 模版（可扩展）
+> 当前版本：**v10（阶段性完成）**  
+> 作者：forth1  
+> 状态：持续演进中
 
-适合快速构建 DApp，不用重复写模板代码。
-📁 目录结构
-<details>
-<summary><strong>点击展开目录结构</strong></summary>
-my-web3-dev-library/
-│
-├── solidity/
-│   └── Bank.sol                 # Bank 合约（存款 / 提现）
-│
-├── hardhat/
-│   ├── deploy-bank.js           # Hardhat 部署脚本
-│   └── COMMANDS.md              # 常用 Hardhat 命令速查
-│
-├── react/
-│   ├── getBankContract.ts       # 自动选择 ABI + 地址并返回 contract 实例
-│   └── number-utils.ts          # parseEther / formatEther 工具
-│
-├── hooks/
-│   └── useMyHook.ts             # 通用 React Hook 模板
-│
+---
+
+## ✨ 项目定位
+
+Web3 Toolkit 不是“教程代码”，而是一个 **可直接复用的工程工具库**：
+
+- 不依赖复杂脚手架
+- 强调「**真实开发流程**」
+- 每一层都能单独拿出来用
+
+适合人群：
+
+- Web3 / Solidity 学习者
+- 想从「会写合约」走向「能做 DApp」的前端工程师
+- 希望构建自己长期工具库的开发者
+
+---
+
+## 🧱 核心能力（v10）
+
+### 1️⃣ Solidity 合约层（Hardhat）
+
+- `Bank.sol`
+  - 存款 / 取款
+  - 合约余额查询
+- `MyToken.sol`
+  - 基于 OpenZeppelin ERC20
+  - 可直接用于测试代币交互
+
+📁 目录：
+solidity/
+├── Bank.sol
+└── MyToken.sol
+---
+
+### 2️⃣ 部署脚本（Hardhat Scripts）
+
+- 单独部署 Bank
+- 单独部署 ERC20
+- Bank + Token 一键联合部署
+
+📁 目录：
+hardhat/
+├── deploy-bank.js
+├── deploy-erc20.js
+└── deploy-bank-and-token.js
+---
+
+### 3️⃣ 前端合约交互工具（React / TypeScript）
+
+**合约实例封装**
+- `getBankContract.ts`
+- `getBalance.ts`
+- `networks.ts`
+
+**常用工具函数**
+- `number-utils.ts`
+- `formatAddress.ts`
+
+📁 目录：
+react/
+├── getBankContract.ts
+├── getBalance.ts
+├── networks.ts
+├── number-utils.ts
+├── formatAddress.ts
+└── BankDappDemo.tsx
+---
+
+### 4️⃣ React Hooks 封装
+
+将 Web3 逻辑从 UI 中彻底抽离：
+
+- `useWallet`：钱包连接 / 网络判断
+- `useBank`：Bank 合约操作
+- `useBankApp`：业务级组合 Hook
+- `useMyHook`：通用 Hook 模板
+
+📁 目录：
+hooks/
+├── useWallet.ts
+├── useBank.ts
+├── useBankApp.ts
+└── useMyHook.ts
+---
+
+### 5️⃣ Demo 级 DApp 示例
+
+`BankDappDemo.tsx` 展示了：
+
+- 钱包连接
+- 网络校验
+- 余额读取
+- 存款 / 取款完整流程
+
+> 这是 **v10 的核心里程碑**：  
+> 工具库已经可以 **真实支撑一个完整 DApp 页面**
+
+---
+
+## 📦 工程结构总览
+web3-toolkit/
+├── hardhat/            # 合约部署脚本
+├── solidity/           # Solidity 合约
+├── react/              # 前端 Web3 工具
+├── hooks/              # React Hooks
+├── package.json
+├── hardhat.config.js
 └── README.md
-</details>
-🔧 使用方法
+> ❗️`node_modules / .DS_Store` 已被正确忽略，不属于仓库内容
 
-1️⃣ Hardhat — 部署智能合约
+---
 
-在 /hardhat 目录下运行：
-npx hardhat compile
-npx hardhat run hardhat/deploy-bank.js --network sepolia
-部署成功后将输出合约地址，供前端调用。
-2️⃣ 前端 —— 获取 Bank 合约实例
+## 🧭 版本说明
 
-使用 getBankContract.ts：
-import getBankContract from "../react/getBankContract";
+### v9
+- Bank 合约 + 基础前端交互
+- 工具函数初步拆分
 
-const contract = await getBankContract();
-自动返回：
-	•	provider
-	•	signer
-	•	contract（ABI + 地址已绑定）
-3️⃣ ETH 单位常用工具
+### ✅ v10（当前）
+- ERC20 合约加入
+- 部署脚本体系化
+- React Hooks 成体系
+- Demo DApp 跑通完整流程
 
-在 number-utils.ts：
-import { ethers } from "ethers";
+**结论：v10 是「工具库可用化」的完成版本**
 
-const wei = ethers.utils.parseEther("0.1");      // ETH → Wei
-const eth = ethers.utils.formatEther(wei);       // Wei → ETH
-4️⃣ React 通用 Hook 模板
-文件：hooks/useMyHook.ts
-export function useMyHook() {
-  const [data, setData] = useState<string | null>(null);
+---
 
-  useEffect(() => {
-    // 你可以在这里写自己的逻辑
-    // setData("hello web3");
-  }, []);
+## 🔜 下一步规划（v11+）
 
-  return { data };
-}
-🚀 如何开始使用本工具库
+- 工具进一步模块化（packages 拆分）
+- UI 层抽象（组件库）
+- 多网络 / 多合约支持
+- 发布为 npm 包
+- 更多真实 DApp 示例
 
-克隆仓库（示例）
-git clone https://github.com/你的用户名/web3-toolkit.git
-安装依赖（如使用 Hardhat）
-npm install
-编译 & 部署
-npx hardhat compile
-npx hardhat run hardhat/deploy-bank.js --network sepolia
-## 上传到 GitHub 的步骤（备忘）
+---
 
-```bash
-git init
-git add .
-git commit -m "web3 toolkit v1"
-git branch -M main
-git remote add origin https://github.com/你的用户名/web3-toolkit.git
-git push -u origin main
-### 📌 发布版本（Tag）
+## 🧠 设计理念
 
-首次发布：
-```bash
-git tag v1
-git push origin v1
-## 上传到 GitHub 的步骤2（备忘）
+> Web3 学习不是“多看教程”，而是：
+>
+> **把你写过的每一行代码，沉淀为可复用工具。**
 
-```bash
-git add .
-git commit -m "release v2"
-git push origin main
-git tag v2
-git push origin v2
+Web3 Toolkit 就是这个沉淀过程的产物。
 
+---
 
+## 📜 License
+
+MIT License
