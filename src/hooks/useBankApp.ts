@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ethers } from "ethers";
 import { getBankContract } from "../bank/getBankContract";
-import { formatAddress } from "../utils/formatAddress";
+import { formatAddress } from "../core/formatAddress";
 
 export interface BankAppState {
   account: string | null;

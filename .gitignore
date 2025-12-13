@@ -16,4 +16,4 @@ artifacts/
 *.code-workspace
 
 # env
-.env
+.envdist/

@@ -7,9 +7,9 @@ export * from "./bank/getBankContract";
 export * from "./bank/getBalance";
 
 // common utils
-export * from "./utils/networks";
-export * from "./utils/number-utils";
-export * from "./utils/formatAddress";
+export * from "./core/networks";
+export * from "./core/number-utils";
+export * from "./core/formatAddress";
 
 // react hooks (如果你决定让库包含 hooks)
 export * from "./hooks/useWallet";

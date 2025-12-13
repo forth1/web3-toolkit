@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 import BankArtifact from "../abi/Bank.json";
-import { NETWORKS } from "../utils/networks";
+import { NETWORKS } from "../core/networks";
 
 export async function getBankContract() {
   const ethereum = (window as any).ethereum;
