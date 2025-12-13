@@ -7,6 +7,7 @@ export * from "./bank/getBankContract";
 export * from "./bank/getBalance";
 
 // common utils
+export * from "./core/ethereum";
 export * from "./core/networks";
 export * from "./core/number-utils";
 export * from "./core/formatAddress";

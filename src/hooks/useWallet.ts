@@ -1,41 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { ethers } from "ethers";
+import { getEthereum } from "../core/ethereum";
 
-export interface WalletState {
-  account: string | null;
-  shortAccount: string;
-  balance: string;
-  loading: boolean;
-  error: string | null;
-}
-
-export interface UseWalletResult extends WalletState {
-  connect: () => Promise<void>;
-  refreshBalance: () => Promise<void>;
-  disconnect: () => void;
-}
-
-function shortAddr(addr: string | null) {
-  if (!addr) return "";
-  return addr.slice(0, 6) + "..." + addr.slice(-4);
-}
-
-export function useWallet(): UseWalletResult {
+export function useWallet() {
   const [account, setAccount] = useState<string | null>(null);
   const [balance, setBalance] = useState("0");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ⭐ 唯一合法的 ethereum 来源
-  const getEthereum = useCallback(() => {
-    return (window as any).ethereum as any;
-  }, []);
-
   const getProvider = useCallback(() => {
     const ethereum = getEthereum();
     if (!ethereum) throw new Error("No wallet found");
-    return new ethers.providers.Web3Provider(ethereum);
-  }, [getEthereum]);
+    return new ethers.providers.Web3Provider(ethereum as any);
+  }, []);
 
   const refreshBalance = useCallback(async () => {
     if (!account) return;
@@ -49,10 +26,7 @@ export function useWallet(): UseWalletResult {
       setLoading(true);
       setError(null);
 
-      const ethereum = getEthereum();
-      if (!ethereum) throw new Error("No wallet found");
-
-      const provider = new ethers.providers.Web3Provider(ethereum);
+      const provider = getProvider();
       await provider.send("eth_requestAccounts", []);
 
       const signer = provider.getSigner();
@@ -66,7 +40,7 @@ export function useWallet(): UseWalletResult {
     } finally {
       setLoading(false);
     }
-  }, [getEthereum]);
+  }, [getProvider]);
 
   const disconnect = useCallback(() => {
     setAccount(null);
@@ -76,7 +50,7 @@ export function useWallet(): UseWalletResult {
 
   useEffect(() => {
     const ethereum = getEthereum();
-    if (!ethereum) return;
+    if (!ethereum?.on) return;
 
     const onAccountsChanged = (accs: string[]) => {
       const a = accs?.[0] ?? null;
@@ -88,18 +62,20 @@ export function useWallet(): UseWalletResult {
       refreshBalance().catch(() => {});
     };
 
-    ethereum.on?.("accountsChanged", onAccountsChanged);
-    ethereum.on?.("chainChanged", onChainChanged);
+    ethereum.on("accountsChanged", onAccountsChanged);
+    ethereum.on("chainChanged", onChainChanged);
 
     return () => {
       ethereum.removeListener?.("accountsChanged", onAccountsChanged);
       ethereum.removeListener?.("chainChanged", onChainChanged);
     };
-  }, [getEthereum, refreshBalance]);
+  }, [refreshBalance]);
+
+  const shortAccount = account ? account.slice(0, 6) + "..." + account.slice(-4) : "";
 
   return {
     account,
-    shortAccount: shortAddr(account),
+    shortAccount,
     balance,
     loading,
     error,
