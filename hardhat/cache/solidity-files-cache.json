@@ -1,18 +1,18 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "/Users/wangweiqiang/Documents/web3-toolkit/solidity/Bank.sol": {
-      "lastModificationDate": 1765189190611,
-      "contentHash": "a05b860e3cfdb2cc4bc17f9b50fa87f4",
-      "sourceName": "solidity/Bank.sol",
+    "/Users/wangweiqiang/Documents/web3-toolkit/hardhat/contracts/Bank.sol": {
+      "lastModificationDate": 1765581620162,
+      "contentHash": "1c3d7abb1b5effe70f0bc17105d3dbb4",
+      "sourceName": "hardhat/contracts/Bank.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
-          "evmVersion": "paris",
           "optimizer": {
-            "enabled": false,
+            "enabled": true,
             "runs": 200
           },
+          "evmVersion": "paris",
           "outputSelection": {
             "*": {
               "*": [
@@ -31,24 +31,24 @@
       },
       "imports": [],
       "versionPragmas": [
-        "^0.8.19"
+        "^0.8.20"
       ],
       "artifacts": [
         "Bank"
       ]
     },
-    "/Users/wangweiqiang/Documents/web3-toolkit/solidity/MyToken.sol": {
-      "lastModificationDate": 1765220302664,
+    "/Users/wangweiqiang/Documents/web3-toolkit/hardhat/contracts/MyToken.sol": {
+      "lastModificationDate": 1765580247656,
       "contentHash": "f3930d72855bcde7eac5e9d7e05bc999",
-      "sourceName": "solidity/MyToken.sol",
+      "sourceName": "hardhat/contracts/MyToken.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
-          "evmVersion": "paris",
           "optimizer": {
-            "enabled": false,
+            "enabled": true,
             "runs": 200
           },
+          "evmVersion": "paris",
           "outputSelection": {
             "*": {
               "*": [
@@ -82,11 +82,11 @@
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
-          "evmVersion": "paris",
           "optimizer": {
-            "enabled": false,
+            "enabled": true,
             "runs": 200
           },
+          "evmVersion": "paris",
           "outputSelection": {
             "*": {
               "*": [
@@ -116,6 +116,42 @@
         "ERC20"
       ]
     },
+    "/Users/wangweiqiang/node_modules/@openzeppelin/contracts/utils/Context.sol": {
+      "lastModificationDate": 1765034282390,
+      "contentHash": "67bfbc07588eb8683b3fd8f6f909563e",
+      "sourceName": "@openzeppelin/contracts/utils/Context.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "Context"
+      ]
+    },
     "/Users/wangweiqiang/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol": {
       "lastModificationDate": 1765034282409,
       "contentHash": "9261adf6457863de3e9892f51317ec89",
@@ -123,11 +159,11 @@
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
-          "evmVersion": "paris",
           "optimizer": {
-            "enabled": false,
+            "enabled": true,
             "runs": 200
           },
+          "evmVersion": "paris",
           "outputSelection": {
             "*": {
               "*": [
@@ -152,44 +188,6 @@
         "IERC20"
       ]
     },
-    "/Users/wangweiqiang/node_modules/@openzeppelin/contracts/interfaces/draft-IERC6093.sol": {
-      "lastModificationDate": 1765034282394,
-      "contentHash": "5041977bbe908de2e6ed0270447f79ad",
-      "sourceName": "@openzeppelin/contracts/interfaces/draft-IERC6093.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "evmVersion": "paris",
-          "optimizer": {
-            "enabled": false,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        ">=0.8.4"
-      ],
-      "artifacts": [
-        "IERC1155Errors",
-        "IERC20Errors",
-        "IERC721Errors"
-      ]
-    },
     "/Users/wangweiqiang/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol": {
       "lastModificationDate": 1765034282409,
       "contentHash": "513778b30d2750f5d2b9b19bbcf748a5",
@@ -197,11 +195,11 @@
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
-          "evmVersion": "paris",
           "optimizer": {
-            "enabled": false,
+            "enabled": true,
             "runs": 200
           },
+          "evmVersion": "paris",
           "outputSelection": {
             "*": {
               "*": [
@@ -228,18 +226,18 @@
         "IERC20Metadata"
       ]
     },
-    "/Users/wangweiqiang/node_modules/@openzeppelin/contracts/utils/Context.sol": {
-      "lastModificationDate": 1765034282390,
-      "contentHash": "67bfbc07588eb8683b3fd8f6f909563e",
-      "sourceName": "@openzeppelin/contracts/utils/Context.sol",
+    "/Users/wangweiqiang/node_modules/@openzeppelin/contracts/interfaces/draft-IERC6093.sol": {
+      "lastModificationDate": 1765034282394,
+      "contentHash": "5041977bbe908de2e6ed0270447f79ad",
+      "sourceName": "@openzeppelin/contracts/interfaces/draft-IERC6093.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
-          "evmVersion": "paris",
           "optimizer": {
-            "enabled": false,
+            "enabled": true,
             "runs": 200
           },
+          "evmVersion": "paris",
           "outputSelection": {
             "*": {
               "*": [
@@ -258,10 +256,12 @@
       },
       "imports": [],
       "versionPragmas": [
-        "^0.8.20"
+        ">=0.8.4"
       ],
       "artifacts": [
-        "Context"
+        "IERC1155Errors",
+        "IERC20Errors",
+        "IERC721Errors"
       ]
     }
   }

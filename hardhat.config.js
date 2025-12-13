@@ -1,10 +1,14 @@
-require("@nomicfoundation/hardhat-ethers");
-
 module.exports = {
-  solidity: "0.8.20",
+  solidity: {
+    version: "0.8.20",
+    settings: {
+      optimizer: { enabled: true, runs: 200 },
+    },
+  },
   paths: {
-    sources: "./solidity",
+    sources: "./hardhat/contracts",
+    artifacts: "./hardhat/artifacts",
     cache: "./hardhat/cache",
-    artifacts: "./hardhat/artifacts"
-  }
+    tests: "./hardhat/test",
+  },
 };

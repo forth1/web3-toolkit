@@ -1,8 +1,8 @@
 // hooks/useBankApp.ts
 import { useCallback, useEffect, useState } from "react";
 import { ethers } from "ethers";
-import getBankContract from "../react/getBankContract";
-import { formatAddress } from "../react/formatAddress";
+import { getBankContract } from "../bank/getBankContract";
+import { formatAddress } from "../utils/formatAddress";
 
 export interface BankAppState {
   account: string | null;
