@@ -1,13 +1,14 @@
-// hooks/useBankApp.ts
-import { useCallback, useEffect, useState } from "react";
+// src/hooks/useBankApp.ts
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ethers } from "ethers";
 import { getBankContract } from "../bank/getBankContract";
 import { formatAddress } from "../core/formatAddress";
+import { getEthereum } from "../core/ethereum";
 
 export interface BankAppState {
   account: string | null;
   shortAccount: string;
-  balance: string;        // ETH 字符串，比如 "0.1234"
+  balance: string; // 钱包 ETH 余额字符串
   loading: boolean;
   error: string | null;
   txHash: string | null;
@@ -20,45 +21,60 @@ export interface UseBankAppResult extends BankAppState {
   withdraw: (amountEth: string) => Promise<void>;
 }
 
+function getWeb3Provider() {
+  const ethereum = getEthereum();
+  if (!ethereum) throw new Error("No wallet found");
+  return new ethers.providers.Web3Provider(ethereum as any);
+}
+
 export function useBankApp(): UseBankAppResult {
   const [account, setAccount] = useState<string | null>(null);
-  const [balance, setBalance] = useState<string>("0.0");
+  const [balance, setBalance] = useState<string>("0");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
 
-  const shortAccount = formatAddress(account);
+  const shortAccount = useMemo(() => formatAddress(account), [account]);
 
-  // 通用：获取 provider / signer / contract
-  const getContext = useCallback(async () => {
-    const { provider, signer, contract } = await getBankContract();
-
+  // 统一获取 signer + address（不再依赖 getBankContract 返回 provider/signer）
+  const getSignerAndAddr = useCallback(async () => {
+    const provider = getWeb3Provider();
+    const signer = provider.getSigner();
     const addr = await signer.getAddress();
     setAccount(addr);
-
-    return { provider, signer, contract, addr };
+    return { provider, signer, addr };
   }, []);
 
-  // 连接钱包（如果没连接）
+  // 连接钱包（触发弹窗）
   const connect = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      await getContext();
+
+      const provider = getWeb3Provider();
+      await provider.send("eth_requestAccounts", []);
+
+      const signer = provider.getSigner();
+      const addr = await signer.getAddress();
+      setAccount(addr);
+
+      const wei = await provider.getBalance(addr);
+      setBalance(ethers.utils.formatEther(wei));
     } catch (e: any) {
       console.error(e);
       setError(e?.message ?? "连接钱包失败");
     } finally {
       setLoading(false);
     }
-  }, [getContext]);
+  }, []);
 
-  // 刷新 ETH 余额（钱包余额，不是 Bank 里存款）
+  // 刷新钱包 ETH 余额
   const refreshBalance = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const { provider, addr } = await getContext();
+
+      const { provider, addr } = await getSignerAndAddr();
       const wei = await provider.getBalance(addr);
       setBalance(ethers.utils.formatEther(wei));
     } catch (e: any) {
@@ -67,9 +83,9 @@ export function useBankApp(): UseBankAppResult {
     } finally {
       setLoading(false);
     }
-  }, [getContext]);
+  }, [getSignerAndAddr]);
 
-  // 存款到 Bank 合约
+  // 存款到 Bank 合约（使用 value）
   const deposit = useCallback(
     async (amountEth: string) => {
       try {
@@ -77,11 +93,13 @@ export function useBankApp(): UseBankAppResult {
         setError(null);
         setTxHash(null);
 
-        const { contract } = await getContext();
+        const contract = await getBankContract(); // ✅ 现在只返回 contract
         const value = ethers.utils.parseEther(amountEth);
-        const tx = await contract.deposit({ value });
+
+        const tx = await (contract as any).deposit({ value });
         setTxHash(tx.hash);
         await tx.wait();
+
         await refreshBalance();
       } catch (e: any) {
         console.error(e);
@@ -90,10 +108,10 @@ export function useBankApp(): UseBankAppResult {
         setLoading(false);
       }
     },
-    [getContext, refreshBalance]
+    [refreshBalance]
   );
 
-  // 从 Bank 合约取款
+  // 取款
   const withdraw = useCallback(
     async (amountEth: string) => {
       try {
@@ -101,11 +119,13 @@ export function useBankApp(): UseBankAppResult {
         setError(null);
         setTxHash(null);
 
-        const { contract } = await getContext();
+        const contract = await getBankContract();
         const value = ethers.utils.parseEther(amountEth);
-        const tx = await contract.withdraw(value);
+
+        const tx = await (contract as any).withdraw(value);
         setTxHash(tx.hash);
         await tx.wait();
+
         await refreshBalance();
       } catch (e: any) {
         console.error(e);
@@ -114,26 +134,42 @@ export function useBankApp(): UseBankAppResult {
         setLoading(false);
       }
     },
-    [getContext, refreshBalance]
+    [refreshBalance]
   );
 
-  // 页面加载时自动尝试连一次（如果用户已经授权过）
+  // 初始化：如果用户已授权过，自动读取 account + balance（静默，不弹窗）
   useEffect(() => {
+    let cancelled = false;
+
     (async () => {
       try {
-        if (!(window as any).ethereum) return;
-        const { ethereum } = window as any;
-        const accounts: string[] = await ethereum.request({
-          method: "eth_accounts",
-        });
-        if (accounts.length > 0) {
-          await refreshBalance();
+        const ethereum = getEthereum();
+        if (!ethereum) return;
+
+        const provider = new ethers.providers.Web3Provider(ethereum as any);
+        const accounts = await provider.listAccounts();
+        const addr = accounts?.[0] ?? null;
+
+        if (cancelled) return;
+
+        setAccount(addr);
+        if (!addr) {
+          setBalance("0");
+          return;
         }
-      } catch (e) {
-        // 静默失败即可
+
+        const wei = await provider.getBalance(addr);
+        if (cancelled) return;
+        setBalance(ethers.utils.formatEther(wei));
+      } catch {
+        // 静默失败
       }
     })();
-  }, [refreshBalance]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return {
     account,
