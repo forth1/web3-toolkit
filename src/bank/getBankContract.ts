@@ -1,14 +1,14 @@
+// src/bank/getBankContract.ts
 import { ethers } from "ethers";
 import BankArtifact from "../abi/Bank.json";
 import { NETWORKS } from "../core/networks";
+import { getEthereum } from "../core/ethereum";
 
 export async function getBankContract() {
-  const ethereum = (window as any).ethereum;
-  if (!ethereum) {
-    throw new Error("No wallet found");
-  }
+  const ethereum = getEthereum();
+  if (!ethereum) throw new Error("No wallet found");
 
-  const provider = new ethers.providers.Web3Provider(ethereum);
+  const provider = new ethers.providers.Web3Provider(ethereum as any);
   const signer = provider.getSigner();
 
   const address = NETWORKS.local.bank;
@@ -16,8 +16,9 @@ export async function getBankContract() {
     throw new Error("Invalid bank contract address");
   }
 
-  // ⚠️ 关键：只取 abi
   const abi = (BankArtifact as any).abi;
+  const contract = new ethers.Contract(address, abi, signer);
 
-  return new ethers.Contract(address, abi, signer);
+  // ✅ Phase2 统一上下文输出
+  return { provider, signer, contract };
 }
