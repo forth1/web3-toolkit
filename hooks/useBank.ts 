@@ -2,7 +2,19 @@
 import { useCallback, useEffect, useState } from "react";
 import { ethers } from "ethers";
 import { getBankContract } from "../react/getBankContract";
-import { getBalance } from "../react/getBalance"; // 如果暂时没有这个文件，可以先删掉这行和下面用到的地方
+import { getBalance } from "../react/getBalance"; // 没有这个文件就删掉这一行 + refresh 里 try/catch 那段
+
+// ====== 事件数据结构 ======
+export type BankEventType = "Deposit" | "Withdraw";
+
+export interface BankEventItem {
+  id: string;          // txHash-logIndex（用来当 React key）
+  type: BankEventType; // Deposit / Withdraw
+  user: string;        // 事件里的 user
+  amountEth: string;   // 事件里的 amount（转成 ETH 字符串）
+  txHash: string;
+  blockNumber: number;
+}
 
 // 你工具库里统一用 string 表示 ETH 金额，方便在 UI 里直接展示
 export interface BankState {
@@ -10,6 +22,9 @@ export interface BankState {
   bankBalance: string;   // 合约中的余额（ETH）
   loading: boolean;
   error?: string;
+
+  // ✅ 新增：事件列表
+  events: BankEventItem[];
 }
 
 export function useBank() {
@@ -17,17 +32,59 @@ export function useBank() {
     walletBalance: "0",
     bankBalance: "0",
     loading: false,
+    events: [], // ✅ 初始化事件数组
   });
 
   // 内部工具：安全更新 state
-  const safeSetState = useCallback(
-    (patch: Partial<BankState>) => {
-      setState((prev) => ({ ...prev, ...patch }));
-    },
-    []
-  );
+  const safeSetState = useCallback((patch: Partial<BankState>) => {
+    setState((prev) => ({ ...prev, ...patch }));
+  }, []);
 
-  // 刷新余额（钱包 + Bank 合约）
+  /**
+   * ✅ 拉取最近事件（最小实现）
+   * - 从最新区块往前 N 个区块（比如 5000）扫描
+   * - 合并 Deposit/Withdraw，并按 blockNumber 倒序
+   */
+  const loadRecentEvents = useCallback(async () => {
+    const { provider, contract } = await getBankContract();
+
+    // 取当前最新区块号
+    const latest = await provider.getBlockNumber();
+
+    // 从 latest 往前扫 5000 个区块（你可以改大/改小）
+    const fromBlock = Math.max(0, latest - 5000);
+
+    // 事件过滤器（Deposit()/Withdraw() 事件）
+    // 注意：这里用 any 是为了避免你没生成类型时 TS 报错
+    const depositFilter = (contract as any).filters.Deposit?.();
+    const withdrawFilter = (contract as any).filters.Withdraw?.();
+
+    // 分别拉取两种事件
+    const [depositLogs, withdrawLogs] = await Promise.all([
+      (contract as any).queryFilter(depositFilter, fromBlock, latest),
+      (contract as any).queryFilter(withdrawFilter, fromBlock, latest),
+    ]);
+
+    // 统一转换成前端好用的结构
+    const parse = (log: any, type: BankEventType): BankEventItem => ({
+      id: `${log.transactionHash}-${log.logIndex}`,
+      type,
+      user: log.args?.user as string,
+      amountEth: ethers.utils.formatEther(log.args?.amount ?? 0),
+      txHash: log.transactionHash,
+      blockNumber: log.blockNumber,
+    });
+
+    const merged = [
+      ...depositLogs.map((l: any) => parse(l, "Deposit")),
+      ...withdrawLogs.map((l: any) => parse(l, "Withdraw")),
+    ].sort((a, b) => b.blockNumber - a.blockNumber);
+
+    // 最多保留 50 条（你可以改）
+    safeSetState({ events: merged.slice(0, 50) });
+  }, [safeSetState]);
+
+  // 刷新余额（钱包 + Bank 合约）+ ✅ 顺便刷新事件
   const refresh = useCallback(async () => {
     try {
       safeSetState({ loading: true, error: undefined });
@@ -35,10 +92,10 @@ export function useBank() {
       const { contract, signer, provider } = await getBankContract();
       const address = await signer.getAddress();
 
-      // 1. 合约里的余额
-      const bankRaw = await contract.balances(address);
+      // 1) 合约里的余额（mapping public balances）
+      const bankRaw = await (contract as any).balances(address);
 
-      // 2. 钱包余额（用你自己的 getBalance 工具，如果没有就用 provider.getBalance）
+      // 2) 钱包余额（优先用你自己的 getBalance；没有就 fallback provider.getBalance）
       let walletRaw: ethers.BigNumber;
       try {
         walletRaw = await getBalance(provider, address);
@@ -49,16 +106,20 @@ export function useBank() {
       safeSetState({
         walletBalance: ethers.utils.formatEther(walletRaw ?? 0),
         bankBalance: ethers.utils.formatEther(bankRaw ?? 0),
-        loading: false,
       });
+
+      // ✅ 3) 事件刷新（放最后，避免影响余额显示）
+      await loadRecentEvents();
+
+      safeSetState({ loading: false });
     } catch (e: any) {
       console.error("useBank.refresh error:", e);
       safeSetState({
         loading: false,
-        error: e?.reason || e?.message || "刷新余额失败",
+        error: e?.reason || e?.message || "刷新失败",
       });
     }
-  }, [safeSetState]);
+  }, [safeSetState, loadRecentEvents]);
 
   // 存款
   const deposit = useCallback(
@@ -70,11 +131,12 @@ export function useBank() {
         safeSetState({ loading: true, error: undefined });
 
         const { contract } = await getBankContract();
-        const tx = await contract.deposit({
+        const tx = await (contract as any).deposit({
           value: ethers.utils.parseEther(amountEth),
         });
         await tx.wait();
 
+        // ✅ 存款成功后刷新余额 + 事件
         await refresh();
       } catch (e: any) {
         console.error("useBank.deposit error:", e);
@@ -99,11 +161,12 @@ export function useBank() {
         safeSetState({ loading: true, error: undefined });
 
         const { contract } = await getBankContract();
-        const tx = await contract.withdraw(
+        const tx = await (contract as any).withdraw(
           ethers.utils.parseEther(amountEth)
         );
         await tx.wait();
 
+        // ✅ 取款成功后刷新余额 + 事件
         await refresh();
       } catch (e: any) {
         console.error("useBank.withdraw error:", e);
@@ -120,13 +183,11 @@ export function useBank() {
 
   // 默认自动刷新一次
   useEffect(() => {
-    refresh().catch(() => {
-      // 已在 refresh 里处理错误，这里不用再提示
-    });
+    refresh().catch(() => {});
   }, [refresh]);
 
   return {
-    ...state,
+    ...state, // ✅ 这里会把 events 一起返回
     refresh,
     deposit,
     withdraw,

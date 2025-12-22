@@ -6,8 +6,5 @@ export default defineConfig({
   dts: true,
   sourcemap: true,
   clean: true,
-  outDir: "dist",
-  outExtension({ format }) {
-    return { js: format === "cjs" ? ".cjs" : ".mjs" };
-  },
+  external: ["react", "react-dom", "react/jsx-runtime"],
 });

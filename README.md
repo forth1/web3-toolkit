@@ -1,161 +1,80 @@
-# 🚀 Web3 Toolkit v10
+# web3-toolkit
 
-一个面向 **Web3 学习者 & 前端工程师** 的实战型工具库，目标是：  
-**用一套稳定、可复用的工具，快速完成 DApp 从合约 → 部署 → 前端交互的完整闭环。**
+一个基于 ethers.js + Hardhat 构建的 Web3 工程工具库（个人长期版本化维护）。
 
-> 当前版本：**v10（阶段性完成）**  
-> 作者：forth1  
-> 状态：持续演进中
+本仓库的目标不是“示例代码”，  
+而是作为 **可复用、可验证、可演进的 Web3 工程基础设施**。
 
 ---
 
-## ✨ 项目定位
+## 📌 当前版本
 
-Web3 Toolkit 不是“教程代码”，而是一个 **可直接复用的工程工具库**：
+- **v0.11.0（v11）**
 
-- 不依赖复杂脚手架
-- 强调「**真实开发流程**」
-- 每一层都能单独拿出来用
-
-适合人群：
-
-- Web3 / Solidity 学习者
-- 想从「会写合约」走向「能做 DApp」的前端工程师
-- 希望构建自己长期工具库的开发者
+这是一个**完整、稳定、已被真实 DApp 使用验证的版本**。
 
 ---
 
-## 🧱 核心能力（v10）
+## ✨ v11 已实现能力
 
-### 1️⃣ Solidity 合约层（Hardhat）
+### 合约与链交互
+- Bank 合约集成（存款 / 取款）
+- 本地 Hardhat 网络支持
+- Provider / Signer / Contract 统一封装
 
-- `Bank.sol`
-  - 存款 / 取款
-  - 合约余额查询
-- `MyToken.sol`
-  - 基于 OpenZeppelin ERC20
-  - 可直接用于测试代币交互
+### 交易与金额校验（核心）
+- 正确区分：
+  - `tx.value`（链上实际转账 ETH）
+  - `event.amount`（合约逻辑金额）
+- Deposit / Withdraw 金额 **事件级校验**
+- 防止：
+  - 金额显示错误
+  - 重放交易导致 UI 错乱
+  - 依赖 tx.value 造成的 Withdraw 误判
 
-📁 目录：
-solidity/
-├── Bank.sol
-└── MyToken.sol
----
+### 工具函数
+- `getBankContract`
+- `getBalance`
+- `verifyBankTxAmount`（生产级交易金额校验）
 
-### 2️⃣ 部署脚本（Hardhat Scripts）
-
-- 单独部署 Bank
-- 单独部署 ERC20
-- Bank + Token 一键联合部署
-
-📁 目录：
-hardhat/
-├── deploy-bank.js
-├── deploy-erc20.js
-└── deploy-bank-and-token.js
----
-
-### 3️⃣ 前端合约交互工具（React / TypeScript）
-
-**合约实例封装**
-- `getBankContract.ts`
-- `getBalance.ts`
-- `networks.ts`
-
-**常用工具函数**
-- `number-utils.ts`
-- `formatAddress.ts`
-
-📁 目录：
-react/
-├── getBankContract.ts
-├── getBalance.ts
-├── networks.ts
-├── number-utils.ts
-├── formatAddress.ts
-└── BankDappDemo.tsx
----
-
-### 4️⃣ React Hooks 封装
-
-将 Web3 逻辑从 UI 中彻底抽离：
-
-- `useWallet`：钱包连接 / 网络判断
-- `useBank`：Bank 合约操作
-- `useBankApp`：业务级组合 Hook
-- `useMyHook`：通用 Hook 模板
-
-📁 目录：
-hooks/
-├── useWallet.ts
-├── useBank.ts
-├── useBankApp.ts
-└── useMyHook.ts
----
-
-### 5️⃣ Demo 级 DApp 示例
-
-`BankDappDemo.tsx` 展示了：
-
-- 钱包连接
-- 网络校验
-- 余额读取
-- 存款 / 取款完整流程
-
-> 这是 **v10 的核心里程碑**：  
-> 工具库已经可以 **真实支撑一个完整 DApp 页面**
+### React Hooks
+- `useWallet`
+- `useBankApp`
+  - 并发安全
+  - 防刷屏
+  - 强制刷新控制
+  - 交易完成后状态一致性保证
 
 ---
 
-## 📦 工程结构总览
-web3-toolkit/
-├── hardhat/            # 合约部署脚本
-├── solidity/           # Solidity 合约
-├── react/              # 前端 Web3 工具
-├── hooks/              # React Hooks
-├── package.json
-├── hardhat.config.js
-└── README.md
-> ❗️`node_modules / .DS_Store` 已被正确忽略，不属于仓库内容
+## 🧠 工程设计要点
+
+- **事件驱动而不是状态猜测**
+- **校验优先于刷新**
+- **明确导出，避免 build / DTS 丢符号**
+- **版本即快照，每个版本都可单独使用**
 
 ---
 
-## 🧭 版本说明
+## 🧪 使用状态
 
-### v9
-- Bank 合约 + 基础前端交互
-- 工具函数初步拆分
-
-### ✅ v10（当前）
-- ERC20 合约加入
-- 部署脚本体系化
-- React Hooks 成体系
-- Demo DApp 跑通完整流程
-
-**结论：v10 是「工具库可用化」的完成版本**
+- v11 已在 `my-bank-dapp` 中完整使用
+- 本地 Hardhat 多终端流程验证通过
+- Deposit / Withdraw 金额与事件完全一致
 
 ---
 
-## 🔜 下一步规划（v11+）
+## 🧩 版本理念说明
 
-- 工具进一步模块化（packages 拆分）
-- UI 层抽象（组件库）
-- 多网络 / 多合约支持
-- 发布为 npm 包
-- 更多真实 DApp 示例
+本仓库采用 **版本演进式学习 + 工程化沉淀**：
 
----
-
-## 🧠 设计理念
-
-> Web3 学习不是“多看教程”，而是：
->
-> **把你写过的每一行代码，沉淀为可复用工具。**
-
-Web3 Toolkit 就是这个沉淀过程的产物。
+- v9 / v10 / v11 都是可回溯快照
+- 不追求“一步到位”，而是逐步工程化
+- 每一版都能单独作为学习或复用基础
 
 ---
 
-## 📜 License
+## 📍 备注
 
-MIT License
+这是一个长期维护的个人 Web3 工程工具库，  
+后续版本将扩展 ERC20、授权校验、多合约协作等能力。

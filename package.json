@@ -1,40 +1,31 @@
 {
   "name": "web3-toolkit",
-  "version": "1.0.0",
-  "description": "🚀 Web3 开发工具库（v11）",
-  "type": "module",
-  "main": "./dist/index.cjs",
+  "version": "0.11.0",
+  "scripts": {
+    "build": "npm run build:ts && npm run build:abi",
+    "build:ts": "tsup",
+    "build:abi": "mkdir -p dist/abi && cp -R src/abi/* dist/abi/"
+  },
+  "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs"
+      "require": "./dist/index.js"
     },
-    "./abi/*": {
-      "default": "./dist/abi/*"
-    }
+    "./abi/*": "./dist/abi/*"
   },
   "files": [
     "dist"
   ],
-  "scripts": {
-    "compile": "npx hardhat compile",
-    "node": "npx hardhat node",
-    "deploy:bank": "npx hardhat run hardhat/deploy-bank.js --network localhost",
-    "deploy:erc20": "npx hardhat run hardhat/deploy-erc20.js --network localhost",
-    "build:ts": "tsup",
-    "build:abi": "mkdir -p dist/abi && cp -R src/abi/* dist/abi/",
-    "build": "npm run build:ts && npm run build:abi",
-    "prepare": "npm run build"
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "ts-node": "^10.9.2",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3"
-  },
-  "dependencies": {
-    "ethers": "^5.8.0"
   }
 }
