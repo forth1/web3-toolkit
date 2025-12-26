@@ -1,13 +1,18 @@
 // src/bank/getBalance.ts
+// 作用：读取 Bank 合约余额（优先 getBalance()，否则读 balance()）并格式化成 ETH 字符串
+// 兼容：ethers v5（使用 ethers.utils.formatEther）
+
 import { ethers } from "ethers";
 import { getBankContract } from "./getBankContract";
 
-export async function getBalance(address: string): Promise<string> {
+export async function getBalance(): Promise<string> {
   const { contract } = await getBankContract();
 
-  // Bank.sol 如果是 `mapping(address => uint256) public balances;`
-  // 那就会有自动生成的 balances(address) getter
-  const bal = await (contract as any).balances(address);
+  // ✅ 兼容不同 Bank 合约接口：getBalance() / balance()
+  const raw =
+    (await contract.getBalance?.()) ??
+    (await contract.balance?.());
 
-  return ethers.utils.formatEther(bal);
+  // ✅ ethers v5：formatEther 在 ethers.utils 下面
+  return ethers.utils.formatEther(raw);
 }

@@ -18,6 +18,12 @@ export * from "./bank/getBalance";
 export * from "./bank/verifyTxAmount";
 
 // =======================
+// token utils (v12 新增)
+// =======================
+export * from "./token/getERC20Contract";
+export * from "./token/getTokenBalance";
+
+// =======================
 // core utils
 // =======================
 export * from "./core/ethereum";

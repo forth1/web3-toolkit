@@ -28,6 +28,13 @@ export interface BankAppState {
   loading: boolean;
   error: string | null;
   txHash: string | null;
+
+  // ✅ Bank 模块是否启用（v12 阶段可彻底关闭 Bank）
+  enabled: boolean;
+}
+
+export interface UseBankAppOptions {
+  enabled?: boolean; // default true
 }
 
 export interface UseBankAppResult extends BankAppState {
@@ -87,14 +94,12 @@ async function verifyWithdrawStateDelta(params: {
   const blockNow = receipt.blockNumber;
   const blockPrev = Math.max(0, blockNow - 1);
 
-  // ✅ ethers v5：constant call 支持 overrides.blockTag
   let before = ethers.constants.Zero;
   let after = ethers.constants.Zero;
 
   try {
     before = await (contract as any).balances(account, { blockTag: blockPrev });
   } catch {
-    // 如果 provider 不支持历史 blockTag，就退化为普通读
     before = await (contract as any).balances(account);
   }
 
@@ -104,23 +109,16 @@ async function verifyWithdrawStateDelta(params: {
     after = await (contract as any).balances(account);
   }
 
-  // ✅ 理论上 Withdraw 会让 bank balance 下降 expectedAmountWei
   const delta = bnSub(before, after);
-
   const ok = bnEq(delta, expectedAmountWei);
 
-  return {
-    ok,
-    before,
-    after,
-    delta,
-    expectedAmountWei,
-    blockPrev,
-    blockNow,
-  };
+  return { ok, before, after, delta, expectedAmountWei, blockPrev, blockNow };
 }
 
-export function useBankApp(): UseBankAppResult {
+export function useBankApp(options?: UseBankAppOptions): UseBankAppResult {
+  // ✅ enabled 开关（默认 true）
+  const enabled = options?.enabled ?? true;
+
   const [account, setAccount] = useState<string | null>(null);
   const [walletEth, setWalletEth] = useState("0");
   const [bankEth, setBankEth] = useState("0");
@@ -166,72 +164,92 @@ export function useBankApp(): UseBankAppResult {
     return accs[0];
   }, []);
 
-  const fetchSnapshot = useCallback(async (addr: string) => {
-    if (!isValidAddress(addr)) throw new Error("invalid address");
+  /**
+   * ✅ 统一快照：
+   * - enabled=true  -> 读 wallet + bank + events（会用 getBankContract）
+   * - enabled=false -> 只读 wallet（Web3Provider.getBalance），完全不碰 bank 合约
+   */
+  const fetchSnapshot = useCallback(
+    async (addr: string) => {
+      if (!isValidAddress(addr)) throw new Error("invalid address");
 
-    const { provider, contract } = await getBankContract();
+      // --- 1) 先拿钱包余额（无论 enabled 与否都可用）---
+      const eth = getEthereum();
+      if (!eth) throw new Error("No wallet");
 
-    const [walletBN, latestBlock] = await Promise.all([
-      provider.getBalance(addr),
-      provider.getBlockNumber(),
-    ]);
+      const walletProvider = new ethers.providers.Web3Provider(eth as any);
+      const walletBN = await walletProvider.getBalance(addr);
 
-    // ✅ bank balance（public balances）
-    let bankBN = ethers.constants.Zero;
-    try {
-      bankBN = await (contract as any).balances(addr);
-    } catch {
-      bankBN = ethers.constants.Zero;
-    }
+      // enabled=false：到此为止，不再碰 Bank
+      if (!enabled) {
+        return {
+          walletEth: ethers.utils.formatEther(walletBN),
+          bankEth: "0",
+          events: [] as BankEventItem[],
+        };
+      }
 
-    // ✅ events（从最近 5000 blocks 拉）
-    const fromBlock = Math.max(0, latestBlock - 5000);
+      // --- 2) enabled=true：才去拿 Bank 合约/事件 ---
+      const { provider, contract } = await getBankContract();
 
-    let merged: BankEventItem[] = [];
-    try {
-      const [deps, wds] = await Promise.all([
-        (contract as any).queryFilter(
-          (contract as any).filters.Deposit(),
-          fromBlock,
-          latestBlock
-        ),
-        (contract as any).queryFilter(
-          (contract as any).filters.Withdraw(),
-          fromBlock,
-          latestBlock
-        ),
-      ]);
+      const latestBlock = await provider.getBlockNumber();
 
-      const parse = (log: any, type: BankEventType): BankEventItem => ({
-        id: `${log.transactionHash}-${log.logIndex}`,
-        type,
-        user: (log.args?.user ?? "") as string,
-        amountEth: ethers.utils.formatEther(log.args?.amount ?? 0),
-        txHash: log.transactionHash,
-        blockNumber: log.blockNumber,
-      });
+      let bankBN = ethers.constants.Zero;
+      try {
+        bankBN = await (contract as any).balances(addr);
+      } catch {
+        bankBN = ethers.constants.Zero;
+      }
 
-      merged = [
-        ...deps.map((l: any) => parse(l, "Deposit")),
-        ...wds.map((l: any) => parse(l, "Withdraw")),
-      ]
-        .reduce<BankEventItem[]>((acc, cur) => {
-          if (acc.find((x) => x.id === cur.id)) return acc;
-          acc.push(cur);
-          return acc;
-        }, [])
-        .sort((a, b) => b.blockNumber - a.blockNumber)
-        .slice(0, 50);
-    } catch {
-      merged = [];
-    }
+      const fromBlock = Math.max(0, latestBlock - 5000);
 
-    return {
-      walletEth: ethers.utils.formatEther(walletBN),
-      bankEth: ethers.utils.formatEther(bankBN),
-      events: merged,
-    };
-  }, []);
+      let merged: BankEventItem[] = [];
+      try {
+        const [deps, wds] = await Promise.all([
+          (contract as any).queryFilter(
+            (contract as any).filters.Deposit(),
+            fromBlock,
+            latestBlock
+          ),
+          (contract as any).queryFilter(
+            (contract as any).filters.Withdraw(),
+            fromBlock,
+            latestBlock
+          ),
+        ]);
+
+        const parse = (log: any, type: BankEventType): BankEventItem => ({
+          id: `${log.transactionHash}-${log.logIndex}`,
+          type,
+          user: (log.args?.user ?? "") as string,
+          amountEth: ethers.utils.formatEther(log.args?.amount ?? 0),
+          txHash: log.transactionHash,
+          blockNumber: log.blockNumber,
+        });
+
+        merged = [
+          ...deps.map((l: any) => parse(l, "Deposit")),
+          ...wds.map((l: any) => parse(l, "Withdraw")),
+        ]
+          .reduce<BankEventItem[]>((acc, cur) => {
+            if (acc.find((x) => x.id === cur.id)) return acc;
+            acc.push(cur);
+            return acc;
+          }, [])
+          .sort((a, b) => b.blockNumber - a.blockNumber)
+          .slice(0, 50);
+      } catch {
+        merged = [];
+      }
+
+      return {
+        walletEth: ethers.utils.formatEther(walletBN),
+        bankEth: ethers.utils.formatEther(bankBN),
+        events: merged,
+      };
+    },
+    [enabled]
+  );
 
   const refreshByAccount = useCallback(
     async (addr: string, force = false) => {
@@ -254,6 +272,8 @@ export function useBankApp(): UseBankAppResult {
           if (!isLatest(rid)) return;
 
           setWalletEth(snap.walletEth);
+
+          // enabled=false 时 snap.bankEth/events 是 0/[]
           setBankEth(snap.bankEth);
           setEvents(snap.events);
         } finally {
@@ -268,6 +288,7 @@ export function useBankApp(): UseBankAppResult {
   );
 
   const connect = useCallback(async () => {
+    // ✅ 即使 enabled=false，也允许 connect（方便你 Token/统一 provider 用）
     setLoading(true);
     setError(null);
     setTxHash(null);
@@ -301,6 +322,11 @@ export function useBankApp(): UseBankAppResult {
         if (!addr) {
           if (!isLatest(rid)) return;
           setAccount(null);
+
+          // 没授权时也把数据清掉（尤其 enabled=true 的事件）
+          setBankEth("0");
+          setEvents([]);
+          setTxHash(null);
           return;
         }
 
@@ -320,6 +346,12 @@ export function useBankApp(): UseBankAppResult {
 
   const deposit = useCallback(
     async (amountEth: string) => {
+      if (!enabled) {
+        const msg = "Bank disabled (v12 stage)";
+        setError(msg);
+        throw new Error(msg);
+      }
+
       if (depositInFlightRef.current) {
         const msg = "Deposit 正在进行中，请等待上一笔完成";
         setError(msg);
@@ -347,14 +379,11 @@ export function useBankApp(): UseBankAppResult {
 
         if (isLatest(rid)) setTxHash(tx.hash);
 
-        // ✅ 等进块
-        const receipt = await tx.wait();
+        await tx.wait();
 
-        // ✅ 防重复处理
         if (processedTxRef.current.has(tx.hash)) return tx;
         processedTxRef.current.add(tx.hash);
 
-        // ✅ 校验 Deposit 金额（优先 event.amount）
         const v = await verifyBankTxAmount({
           provider,
           contract,
@@ -369,7 +398,6 @@ export function useBankApp(): UseBankAppResult {
           throw new Error(msg);
         }
 
-        // ✅ 校验通过后再刷新
         if (isLatest(rid)) await refreshByAccount(addr, true);
 
         return tx;
@@ -381,12 +409,17 @@ export function useBankApp(): UseBankAppResult {
         if (isLatest(rid)) setLoading(false);
       }
     },
-    [account, requestAccounts, refreshByAccount]
+    [enabled, account, requestAccounts, refreshByAccount]
   );
 
   const withdraw = useCallback(
     async (amountEth: string) => {
-      // ✅ 防重放：同一时刻只允许 1 笔 withdraw
+      if (!enabled) {
+        const msg = "Bank disabled (v12 stage)";
+        setError(msg);
+        throw new Error(msg);
+      }
+
       if (withdrawInFlightRef.current) {
         const msg = "Withdraw 正在进行中，请等待上一笔完成";
         setError(msg);
@@ -410,21 +443,17 @@ export function useBankApp(): UseBankAppResult {
 
         const expectedWei = ethers.utils.parseEther(amountEth);
 
-        // ✅ 发送 withdraw
         const tx: ethers.ContractTransaction = await (contract as any).withdraw(
           expectedWei
         );
 
         if (isLatest(rid)) setTxHash(tx.hash);
 
-        // ✅ 等进块
         const receipt = await tx.wait();
 
-        // ✅ 防重复处理
         if (processedTxRef.current.has(tx.hash)) return tx;
         processedTxRef.current.add(tx.hash);
 
-        // ✅ 金额校验：Withdraw 只认事件 Withdraw.amount（tx.value 一定是 0）
         const v = await verifyBankTxAmount({
           provider,
           contract,
@@ -439,7 +468,6 @@ export function useBankApp(): UseBankAppResult {
           throw new Error(msg);
         }
 
-        // ✅ 状态校验：balances(before) - balances(after) == expectedWei
         const s = await verifyWithdrawStateDelta({
           provider,
           contract,
@@ -460,7 +488,6 @@ export function useBankApp(): UseBankAppResult {
           throw new Error(msg);
         }
 
-        // ✅ 校验通过后刷新 UI
         if (isLatest(rid)) await refreshByAccount(addr, true);
 
         return tx;
@@ -472,14 +499,16 @@ export function useBankApp(): UseBankAppResult {
         if (isLatest(rid)) setLoading(false);
       }
     },
-    [account, requestAccounts, refreshByAccount]
+    [enabled, account, requestAccounts, refreshByAccount]
   );
 
+  // ✅ 首刷：enabled=true/false 都可以刷（false 只刷 wallet，不会碰 bank）
   useEffect(() => {
     refresh(true).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ✅ 监听：enabled=true/false 都监听（false 只会刷新 wallet，不会碰 bank）
   useEffect(() => {
     const eth = getEthereum();
     if (!eth?.on) return;
@@ -493,6 +522,7 @@ export function useBankApp(): UseBankAppResult {
       setError(null);
 
       if (!addr) {
+        setBankEth("0");
         setEvents([]);
         return;
       }
@@ -516,6 +546,22 @@ export function useBankApp(): UseBankAppResult {
     };
   }, [refresh, refreshByAccount]);
 
+  // ✅ enabled 切换：当关闭 Bank 时，清空 Bank 残留
+  useEffect(() => {
+    if (enabled) return;
+
+    nextReqId();
+    inflightSnapshotRef.current = null;
+
+    depositInFlightRef.current = false;
+    withdrawInFlightRef.current = false;
+
+    setBankEth("0");
+    setEvents([]);
+    setTxHash(null);
+    setError(null);
+  }, [enabled]);
+
   return {
     account,
     shortAccount,
@@ -525,6 +571,7 @@ export function useBankApp(): UseBankAppResult {
     loading,
     error,
     txHash,
+    enabled,
     connect,
     refresh,
     deposit,
