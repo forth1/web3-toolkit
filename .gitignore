@@ -1,20 +1,60 @@
-# dependencies
+####################################
+# Dependencies
+####################################
 node_modules/
 
-# macOS
-.DS_Store
+####################################
+# Build outputs
+####################################
+dist/
+coverage/
+.out/
+.turbo/
 
-# logs
+####################################
+# Logs
+####################################
 logs/
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Hardhat
-cache/
-artifacts/
+####################################
+# OS / Editor
+####################################
+.DS_Store
+Thumbs.db
 
-# VSCode
+####################################
+# VS Code / IDE
+####################################
+.vscode/
 *.code-workspace
 
-# env
-.envdist/
-dist/
+####################################
+# Environment variables
+####################################
+.env
+.env.*
+!.env.example
+
+####################################
+# Hardhat
+####################################
+cache/
+artifacts/
+typechain/
+typechain-types/
+
+####################################
+# Temporary / Local scripts
+####################################
+check-hre.mjs
+
+####################################
+# Misc
+####################################
+*.swp
+*.swo
