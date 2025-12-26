@@ -49,9 +49,19 @@ typechain/
 typechain-types/
 
 ####################################
+# Local addresses (do not commit)
+####################################
+src/config/addresses.localhost.json
+
+####################################
 # Temporary / Local scripts
 ####################################
 check-hre.mjs
+
+####################################
+# Legacy / accidental folders
+####################################
+contracts/
 
 ####################################
 # Misc
